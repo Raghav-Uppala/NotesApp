@@ -3,7 +3,7 @@ package com.notesapp.notesapp
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 
-val strokes = mutableStateListOf<SnapshotStateList<PenPoint>>()
+var strokes = mutableStateListOf<SnapshotStateList<PenPoint>>()
 val primaryColorHex = "#FFFFFF"
 val primaryColor = primaryColorHex.toComposeColor()
 

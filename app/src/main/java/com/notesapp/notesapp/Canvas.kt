@@ -1,5 +1,6 @@
 package com.notesapp.notesapp
 
+import android.R
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -9,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.PointerType
@@ -56,14 +58,14 @@ fun DrawingScreen() {
                                     }
                                     history.forEach { historicalChange ->
                                         if (prev != null && (historicalChange.position - prev.position).getDistance() >= samplingThreshold) {
-                                            points.add(PenPoint(historicalChange.position, pressureToThickness(currentPressure), currentPressure))
-                                            prev = PenPoint(historicalChange.position, pressureToThickness(currentPressure), currentPressure)
+                                            points.add(PenPoint(historicalChange.position, pressureToThickness(currentPressure)))
+                                            prev = PenPoint(historicalChange.position, pressureToThickness(currentPressure))
                                         } else if (prev == null) {
-                                            points.add(PenPoint(historicalChange.position, pressureToThickness(currentPressure), currentPressure))
-                                            prev = PenPoint(historicalChange.position, pressureToThickness(currentPressure), currentPressure)
+                                            points.add(PenPoint(historicalChange.position, pressureToThickness(currentPressure)))
+                                            prev = PenPoint(historicalChange.position, pressureToThickness(currentPressure))
                                         }
                                     }
-                                    points.add(PenPoint(currentPosition, pressureToThickness(currentPressure), currentPressure))
+                                    points.add(PenPoint(currentPosition, pressureToThickness(currentPressure)))
                                 } else if (mode == 2) {
                                     val toBeErased = strokes.find { it.any {p -> (p.position - currentPosition).getDistance() < eraserThreshold} }
                                     strokes.remove(toBeErased)
@@ -75,6 +77,23 @@ fun DrawingScreen() {
                 }
             }
     ) {
+//        for (i in 0 until strokes.size) {
+//            for (k in 0 until strokes[i].size) {
+//                val normal = calculateNormal(strokes[i], k)
+//                val pressure = strokes[i][k].thickness/2
+//                drawCircle(
+//                    color = Color.Red,
+//                    radius = 1f, // Adjust size of the dot
+//                    center = strokes[i][k].position + (normal * (pressure))
+//                )
+//                drawCircle(
+//                    color = Color.Red,
+//                    radius = 1f, // Adjust size of the dot
+//                    center = strokes[i][k].position - (normal * (pressure))
+//                )
+//
+//            }
+//        }
         for (i in 0 until strokes.size) {
             if (strokes[i].size == 1) {
                 drawCircle(
