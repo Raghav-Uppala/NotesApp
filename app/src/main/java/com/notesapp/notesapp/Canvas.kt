@@ -1,34 +1,81 @@
 package com.notesapp.notesapp
 
-import android.R
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun DrawingScreen() {
-    // This 'list' stores all the points our finger touches
+fun DrawingScreen(
+    resetTrigger: Int,
+    modifier: Modifier = Modifier,
+) {
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    var Centroid by remember { mutableStateOf<Offset>(Offset.Zero) }
+    LaunchedEffect(resetTrigger) {
+        scale = 1f
+        offset = Offset.Zero
+        Log.d("LOGGING", "t")
+    }
     Canvas(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(backgroundColor)
+            .pointerInput(Unit) {
+                detectTransformGestures { centroid, pan, zoom, _ ->
+                    val center = Offset(size.width /2f, size.height /2f)
+                    val oldScale = scale
+                    scale *= zoom
+                    val scaleChange = scale / oldScale
+
+                    offset += (center - centroid) * (1 -1 / scaleChange)
+                    offset += pan
+
+                    Centroid = (centroid - offset) / scale
+
+                    Log.d("LOGGING", "$scale $zoom")
+                    Log.d(
+                        "LOGGING",
+                        "${offset}"
+                    )
+                }
+            }
+            .graphicsLayer(
+                scaleX = scale,
+                scaleY = scale,
+                translationX = offset.x,
+                translationY = offset.y
+            )
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
-                    val primaryButtonPressed = currentEvent.buttons.isPrimaryPressed // main button on spen
+                    val primaryButtonPressed =
+                        currentEvent.buttons.isPrimaryPressed // main button on spen
                     var mode = 1 // pen mode
                     if (primaryButtonPressed) {
                         mode = 2 // erase mode
@@ -48,26 +95,49 @@ fun DrawingScreen() {
                                 }
                                 break;
                             } else {
+                                Log.d("LOGGING", "${change.position}")
                                 val currentPosition = change.position
                                 if (mode == 1) {
                                     val currentPressure = change.pressure
                                     val history = change.historical
-                                    var prev:PenPoint? = null
+                                    var prev: PenPoint? = null
                                     if (!points.isEmpty()) {
                                         prev = points[0]
                                     }
                                     history.forEach { historicalChange ->
                                         if (prev != null && (historicalChange.position - prev.position).getDistance() >= samplingThreshold) {
-                                            points.add(PenPoint(historicalChange.position, pressureToThickness(currentPressure)))
-                                            prev = PenPoint(historicalChange.position, pressureToThickness(currentPressure))
+                                            points.add(
+                                                PenPoint(
+                                                    historicalChange.position,
+                                                    pressureToThickness(currentPressure)
+                                                )
+                                            )
+                                            prev = PenPoint(
+                                                historicalChange.position,
+                                                pressureToThickness(currentPressure)
+                                            )
                                         } else if (prev == null) {
-                                            points.add(PenPoint(historicalChange.position, pressureToThickness(currentPressure)))
-                                            prev = PenPoint(historicalChange.position, pressureToThickness(currentPressure))
+                                            points.add(
+                                                PenPoint(
+                                                    historicalChange.position,
+                                                    pressureToThickness(currentPressure)
+                                                )
+                                            )
+                                            prev = PenPoint(
+                                                historicalChange.position,
+                                                pressureToThickness(currentPressure)
+                                            )
                                         }
                                     }
-                                    points.add(PenPoint(currentPosition, pressureToThickness(currentPressure)))
+                                    points.add(
+                                        PenPoint(
+                                            currentPosition,
+                                            pressureToThickness(currentPressure)
+                                        )
+                                    )
                                 } else if (mode == 2) {
-                                    val toBeErased = strokes.find { it.any {p -> (p.position - currentPosition).getDistance() < eraserThreshold} }
+                                    val toBeErased =
+                                        strokes.find { it.any { p -> (p.position - currentPosition).getDistance() < eraserThreshold } }
                                     strokes.remove(toBeErased)
                                 }
                                 change.consume()
@@ -77,6 +147,11 @@ fun DrawingScreen() {
                 }
             }
     ) {
+//        drawCircle(
+//            color = Color.Blue,
+//            radius = 10f, // Adjust size of the dot
+//            center = Offset(x =  scale * (size.width/3), y =  scale * (size.height/3))
+//        )
 //        for (i in 0 until strokes.size) {
 //            for (k in 0 until strokes[i].size) {
 //                val normal = calculateNormal(strokes[i], k)

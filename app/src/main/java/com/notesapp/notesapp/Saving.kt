@@ -38,7 +38,7 @@ fun saveSVGDataToUri(context: Context, uri: Uri, paths: List<List<PenPoint>>, he
         context.contentResolver.openOutputStream(uri)?.use { raw ->
             BufferedOutputStream(raw, 8192).use { outputStream ->
                 Log.d("LOGGING", "hello")
-                outputStream.write("<svg height=\"1000\" width=\"1000\" xmlns=\"http://www.w3.org/2000/svg\"> ".toByteArray())
+                outputStream.write("<svg height=\"$height\" width=\"$width\" xmlns=\"http://www.w3.org/2000/svg\"> ".toByteArray())
                 Log.d("LOGGING", "${paths.size}")
                 for (i in 0 until paths.size) {
                     Log.d("LOGGING", "h")
