@@ -8,7 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.geometry.Offset
 
-var strokes = mutableStateListOf<SnapshotStateList<PenPoint>>()
+var strokes = mutableStateListOf<Element>()
 val primaryColorHex = "#FFFFFF"
 val backgroundColorHex = "#000000"
 val primaryColor = primaryColorHex.toComposeColor()

@@ -25,8 +25,15 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -36,11 +43,10 @@ fun DrawingScreen(
 ) {
     var scale by remember { mutableStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
-    var Centroid by remember { mutableStateOf<Offset>(Offset.Zero) }
+
     LaunchedEffect(resetTrigger) {
         scale = 1f
         offset = Offset.Zero
-        Log.d("LOGGING", "t")
     }
     Canvas(
         modifier = Modifier
@@ -55,14 +61,6 @@ fun DrawingScreen(
 
                     offset += (center - centroid) * (1 -1 / scaleChange)
                     offset += pan
-
-                    Centroid = (centroid - offset) / scale
-
-                    Log.d("LOGGING", "$scale $zoom")
-                    Log.d(
-                        "LOGGING",
-                        "${offset}"
-                    )
                 }
             }
             .graphicsLayer(
@@ -83,7 +81,7 @@ fun DrawingScreen(
                     val type = down.type
                     val id = down.id
                     val points = mutableStateListOf<PenPoint>()
-                    strokes.add(points)
+                    strokes.add(Element.Stroke(rawPoints = points))
                     if (type == PointerType.Stylus) {
                         while (true) {
                             val event = awaitPointerEvent()
@@ -95,101 +93,188 @@ fun DrawingScreen(
                                 }
                                 break;
                             } else {
-                                Log.d("LOGGING", "${change.position}")
                                 val currentPosition = change.position
                                 if (mode == 1) {
                                     val currentPressure = change.pressure
-                                    val history = change.historical
-                                    var prev: PenPoint? = null
-                                    if (!points.isEmpty()) {
-                                        prev = points[0]
-                                    }
-                                    history.forEach { historicalChange ->
-                                        if (prev != null && (historicalChange.position - prev.position).getDistance() >= samplingThreshold) {
-                                            points.add(
-                                                PenPoint(
-                                                    historicalChange.position,
-                                                    pressureToThickness(currentPressure)
-                                                )
-                                            )
-                                            prev = PenPoint(
-                                                historicalChange.position,
-                                                pressureToThickness(currentPressure)
-                                            )
-                                        } else if (prev == null) {
-                                            points.add(
-                                                PenPoint(
-                                                    historicalChange.position,
-                                                    pressureToThickness(currentPressure)
-                                                )
-                                            )
-                                            prev = PenPoint(
-                                                historicalChange.position,
-                                                pressureToThickness(currentPressure)
-                                            )
+                                    if (points.isNotEmpty()) {
+                                        if ((points.last().position - currentPosition).getDistance() > 2) {
+                                            points.add(PenPoint(currentPosition,pressureToThickness(currentPressure)))
                                         }
+                                    } else {
+                                        strokes[strokes.lastIndex]
+                                        points.add(PenPoint(currentPosition,pressureToThickness(currentPressure)))
                                     }
-                                    points.add(
-                                        PenPoint(
-                                            currentPosition,
-                                            pressureToThickness(currentPressure)
-                                        )
-                                    )
                                 } else if (mode == 2) {
-                                    val toBeErased =
-                                        strokes.find { it.any { p -> (p.position - currentPosition).getDistance() < eraserThreshold } }
+                                    val toBeErased = strokes.find { element ->
+                                        element is Element.Stroke &&
+                                                element.rawPoints.any { p ->
+                                                    val dx = p.position.x - currentPosition.x
+                                                    val dy = p.position.y - currentPosition.y
+                                                    // No square root! Just multiplication and addition.
+                                                    (dx * dx + dy * dy) < eraserThreshold * eraserThreshold
+                                                }
+                                    }
                                     strokes.remove(toBeErased)
                                 }
                                 change.consume()
                             }
                         }
                     }
+                    val lastElem = strokes.lastOrNull()
+                    if (lastElem is Element.Stroke && lastElem.isPath) {
+                        lastElem.computed = computePath(lastElem.rawPoints)
+                    }
                 }
             }
     ) {
-//        drawCircle(
-//            color = Color.Blue,
-//            radius = 10f, // Adjust size of the dot
-//            center = Offset(x =  scale * (size.width/3), y =  scale * (size.height/3))
-//        )
-//        for (i in 0 until strokes.size) {
-//            for (k in 0 until strokes[i].size) {
-//                val normal = calculateNormal(strokes[i], k)
-//                val pressure = strokes[i][k].thickness/2
-//                drawCircle(
-//                    color = Color.Red,
-//                    radius = 1f, // Adjust size of the dot
-//                    center = strokes[i][k].position + (normal * (pressure))
-//                )
-//                drawCircle(
-//                    color = Color.Red,
-//                    radius = 1f, // Adjust size of the dot
-//                    center = strokes[i][k].position - (normal * (pressure))
-//                )
-//
-//            }
-//        }
-        for (i in 0 until strokes.size) {
-            if (strokes[i].size == 1) {
-                drawCircle(
-                    color = primaryColor,
-                    radius = fontSizeDot, // Adjust size of the dot
-                    center = strokes[i][0].position
-                )
-            } else {
-                for (k in 0 until strokes[i].size -1 ) {
-                    val start = strokes[i][k]
-                    val end = strokes[i][k + 1]
-                    drawLine (
-                        color = primaryColor,
-                        start = start.position,
-                        end = end.position,
-                        strokeWidth = start.thickness,
-                        cap = StrokeCap.Round
-                    )
-                    //}
+        var index = 0
+        for (stroke in strokes) {
+            when (stroke) {
+                is Element.Stroke ->  when {
+                    stroke.isDot -> dotDraw(stroke)
+                    stroke.isPath -> pathDraw(stroke)
                 }
             }
+//            if (stroke.size == 1) {
+//                drawCircle(
+//                    color = primaryColor,
+//                    radius = stroke[0].thickness / 2f,
+//                    center = stroke[0].position
+//                )
+//            } else if (stroke.size > 1) {
+//                val strokePath = Path()
+//                if (stroke.size < 2) continue
+//
+//                val leftEdges = mutableListOf<Offset>()
+//                val rightEdges = mutableListOf<Offset>()
+//                var lastValidAngle = 0f
+//
+//// 1. Calculate all edge points first
+//                for (k in 0 until stroke.size) {
+//                    val p = if (k > 0 && k < stroke.size - 1) {
+//                        (stroke[k-1].position + stroke[k].position + stroke[k+1].position) / 3f
+//                    } else {
+//                        stroke[k].position
+//                    }
+//
+//                    val r = stroke[k].thickness / 2f
+//
+//                    val next = if (k < stroke.size - 1) stroke[k + 1].position else p
+//                    val prev = if (k > 0) stroke[k - 1].position else p
+//                    val dist = (next - prev).getDistance()
+//                    val angle = if (dist > 0.1f) {
+//                        atan2((next.y - prev.y).toDouble(), (next.x - prev.x).toDouble()).toFloat()
+//                    } else {
+//                        lastValidAngle // Keep the previous angle if we aren't moving
+//                    }
+//                    lastValidAngle = angle
+//
+//                    val sinAngle = sin(angle.toDouble()).toFloat()
+//                    val cosAngle = cos(angle.toDouble()).toFloat()
+//
+//                    leftEdges.add(Offset(p.x + r * sinAngle, p.y - r * cosAngle))
+//                    rightEdges.add(Offset(p.x - r * sinAngle, p.y + r * cosAngle))
+//                }
+//
+//// 2. Build the Path: Go up the left side, then down the right side
+//                strokePath.moveTo(leftEdges[0].x, leftEdges[0].y)
+//
+//// Left side curve
+//                for (i in 1 until leftEdges.size) {
+//                    val mid = (leftEdges[i-1] + leftEdges[i]) / 2f
+//                    strokePath.quadraticTo(leftEdges[i-1].x, leftEdges[i-1].y, mid.x, mid.y)
+//                }
+//
+//// Rounded tip at the end
+//                strokePath.lineTo(rightEdges.last().x, rightEdges.last().y)
+//
+//// Right side curve (going backwards)
+//                for (i in rightEdges.size - 2 downTo 0) {
+//                    val mid = (rightEdges[i+1] + rightEdges[i]) / 2f
+//                    strokePath.quadraticTo(rightEdges[i+1].x, rightEdges[i+1].y, mid.x, mid.y)
+//                }
+//
+//                strokePath.close()
+//
+//// 3. Draw as a single filled shape
+//                drawPath(path = strokePath, color = primaryColor)
+//            }
+//            index++
         }
     }
+}
+
+fun DrawScope.dotDraw(element: Element.Stroke) {
+    drawCircle(
+        color = element.color,
+        radius = element.rawPoints[0].thickness / 2f,
+        center = element.rawPoints[0].position
+    )
+}
+
+fun DrawScope.pathDraw(element: Element.Stroke) {
+    val comp = element.computed
+    if (comp != null) {
+        drawPath(path = comp.strokePath, color = element.color)
+        Log.d("noteapp", "used cache")
+    } else {
+        val computedPath = computePath(element.rawPoints).strokePath
+        drawPath(path = computedPath, color = element.color)
+    }
+}
+
+fun computePath(stroke: MutableList<PenPoint>): StrokeComp {
+    val strokePath = Path()
+
+    val leftEdges = mutableListOf<Offset>()
+    val rightEdges = mutableListOf<Offset>()
+    var lastValidAngle = 0f
+
+// 1. Calculate all edge points first
+    for (k in 0 until stroke.size) {
+        val p = if (k > 0 && k < stroke.size - 1) {
+            (stroke[k-1].position + stroke[k].position + stroke[k+1].position) / 3f
+        } else {
+            stroke[k].position
+        }
+
+        val r = stroke[k].thickness / 2f
+
+        val next = if (k < stroke.size - 1) stroke[k + 1].position else p
+        val prev = if (k > 0) stroke[k - 1].position else p
+        val dist = (next - prev).getDistance()
+        val angle = if (dist > 0.1f) {
+            atan2((next.y - prev.y).toDouble(), (next.x - prev.x).toDouble()).toFloat()
+        } else {
+            lastValidAngle // Keep the previous angle if we aren't moving
+        }
+        lastValidAngle = angle
+
+        val sinAngle = sin(angle.toDouble()).toFloat()
+        val cosAngle = cos(angle.toDouble()).toFloat()
+
+        leftEdges.add(Offset(p.x + r * sinAngle, p.y - r * cosAngle))
+        rightEdges.add(Offset(p.x - r * sinAngle, p.y + r * cosAngle))
+    }
+
+// 2. Build the Path: Go up the left side, then down the right side
+    strokePath.moveTo(leftEdges[0].x, leftEdges[0].y)
+
+// Left side curve
+    for (i in 1 until leftEdges.size) {
+        val mid = (leftEdges[i-1] + leftEdges[i]) / 2f
+        strokePath.quadraticTo(leftEdges[i-1].x, leftEdges[i-1].y, mid.x, mid.y)
+    }
+
+// Rounded tip at the end
+    strokePath.lineTo(rightEdges.last().x, rightEdges.last().y)
+
+// Right side curve (going backwards)
+    for (i in rightEdges.size - 2 downTo 0) {
+        val mid = (rightEdges[i+1] + rightEdges[i]) / 2f
+        strokePath.quadraticTo(rightEdges[i+1].x, rightEdges[i+1].y, mid.x, mid.y)
+    }
+
+    strokePath.close()
+    return StrokeComp(leftEdges = leftEdges, rightEdges = rightEdges, strokePath = strokePath)
 }

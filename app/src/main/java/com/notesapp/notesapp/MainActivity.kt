@@ -34,7 +34,7 @@ fun String.toComposeColor(): Color {
 }
 
 fun pressureToThickness(pressure: Float): Float {
-    return (pressure + 0.5f) * fontSize
+    return ((pressure)) * fontSize
 }
 
 @Composable
@@ -49,7 +49,6 @@ fun ZoomScreen() {
         Button(
             onClick = {
                 reset++
-                Log.d("LOGGING", "g")
             }
         ) {
             Text("Reset Zoom")

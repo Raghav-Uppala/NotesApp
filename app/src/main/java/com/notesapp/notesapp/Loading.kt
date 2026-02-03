@@ -19,32 +19,32 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import org.xmlpull.v1.XmlPullParser
 
-@Composable
-fun LoadSVGButton() {
-    //val height = LocalConfiguration.current.screenHeightDp
-    //val width = LocalConfiguration.current.screenHeightDp
-    val context = LocalContext.current
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        uri?.let {
-            strokes = parseSvgPaths(context, it)
-        }
-    }
-    // To trigger it (e.g., from a button):
-    Box {
-        Button(
-            onClick = {
-                filePickerLauncher.launch(arrayOf("text/plain", "image/svg+xml"))
-            },
-            modifier = Modifier.offset (
-                x = 200.dp
-            )
-        ) {
-            Text("Load Drawing")
-        }
-    }
-}
+//@Composable
+//fun LoadSVGButton() {
+//    //val height = LocalConfiguration.current.screenHeightDp
+//    //val width = LocalConfiguration.current.screenHeightDp
+//    val context = LocalContext.current
+//    val filePickerLauncher = rememberLauncherForActivityResult(
+//        contract = ActivityResultContracts.OpenDocument()
+//    ) { uri ->
+//        uri?.let {
+//            strokes = parseSvgPaths(context, it)
+//        }
+//    }
+//    // To trigger it (e.g., from a button):
+//    Box {
+//        Button(
+//            onClick = {
+//                filePickerLauncher.launch(arrayOf("text/plain", "image/svg+xml"))
+//            },
+//            modifier = Modifier.offset (
+//                x = 200.dp
+//            )
+//        ) {
+//            Text("Load Drawing")
+//        }
+//    }
+//}
 
 //fun readSVGFileFromUri(context: Context, uri: Uri): String {
 //    return context.contentResolver.openInputStream(uri)?.use { inputStream ->
