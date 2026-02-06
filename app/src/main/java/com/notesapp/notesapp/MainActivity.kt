@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
 class MainActivity : ComponentActivity() {
@@ -31,6 +33,11 @@ class MainActivity : ComponentActivity() {
 }
 fun String.toComposeColor(): Color {
     return Color(this.toColorInt())
+}
+
+fun Color.toHexCode(): String {
+    val argb = this.toArgb()
+    return String.format("#%06X", argb)
 }
 
 fun pressureToThickness(pressure: Float): Float {
@@ -52,6 +59,17 @@ fun ZoomScreen() {
             }
         ) {
             Text("Reset Zoom")
+        }
+        SaveSVGButton(modifier = Modifier.offset(x = 150.dp, y = 0.dp))
+        LoadSVGButton(modifier = Modifier.offset(x = 300.dp, y = 0.dp))
+        Button(
+            onClick = {
+                lasso = lasso != true
+            },
+            modifier = Modifier
+                .offset( x = 450.dp, y = 0.dp)
+        ) {
+            Text("Lasso")
         }
     }
 }
