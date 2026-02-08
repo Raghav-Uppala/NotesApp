@@ -19,6 +19,7 @@ data class StrokeComp(
 )
 
 sealed class Element {
+    var selected = false
     data class Stroke(
         val rawPoints: MutableList<PenPoint> = mutableStateListOf(),
         var computed: StrokeComp? = null,

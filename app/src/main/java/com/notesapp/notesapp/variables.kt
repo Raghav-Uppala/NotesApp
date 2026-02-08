@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 
 
+var rootFolderUri by mutableStateOf<Uri?>(null)
 var strokes = mutableStateListOf<Element>()
 val primaryColorHex = "#FFFFFF"
 val backgroundColorHex = "#000000"

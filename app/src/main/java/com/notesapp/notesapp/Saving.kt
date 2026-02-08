@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -48,13 +49,14 @@ fun SaveSVGButton(
     }
 
 // To trigger it (e.g., from a button):
-    Button(
+    FilledTonalButton(
         onClick = {
             val uri = file_uri
             if (uri != null) {
                 scope.launch {
                     saveSVGDataToUri(context, uri, strokes.toList(), height, width)
-                }            } else {
+                }
+            } else {
                 filePickerLauncher.launch("my_drawing.svg")
             }
         },
@@ -92,13 +94,13 @@ suspend fun saveSVGDataToUri(context: Context, uri: Uri, paths: List<Element>, h
                                         val first = left[0]
                                         pathData.append("M ${first.x} ${first.y} ")
 
-                                        for (p in left) {
-                                            pathData.append("L ${p.x} ${p.y} ")
+                                        for (i in 1 until left.size) {
+                                            pathData.append("Q ${left[i-1].x} ${left[i-1].y} ${left[i]}")
                                         }
 
                                         for (i in right.indices.reversed()) {
                                             val p = right[i]
-                                            pathData.append("L ${p.x} ${p.y} ")
+                                            pathData.append("Q ${p.x} ${p.y} ")
                                         }
 
                                         pathData.append("Z")

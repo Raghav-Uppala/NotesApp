@@ -1,5 +1,6 @@
 package com.notesapp.notesapp
 
+import android.graphics.DashPathEffect
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -26,12 +27,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -39,7 +42,7 @@ import kotlin.math.sin
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun DrawingScreen(
+fun DrawingCanvas(
     resetTrigger: Int,
     modifier: Modifier = Modifier,
 ) {
@@ -196,11 +199,15 @@ fun DrawingScreen(
                     }
                     else if (mode == 4) {
                         lassoMove = false
+                        for (stroke in lassoElems) {
+                            strokes[stroke].selected = false
+                        }
                         lassoElems = emptyList()
                     }
                 }
             }
     ) {
+
         val _version = dragVersion
         Log.d("noteapp", "${strokes.size}")
         for (stroke in strokes) {
@@ -247,7 +254,11 @@ fun DrawScope.dotDraw(element: Element.Stroke) {
 fun DrawScope.pathDraw(element: Element.Stroke) {
     val comp = element.computed
     if (comp != null) {
-        drawPath(path = comp.strokePath, color = element.color)
+        if (element.selected == true ) {
+            drawPath(path = comp.strokePath, color = Color.Blue)
+        } else {
+            drawPath(path = comp.strokePath, color = element.color)
+        }
     } else {
         Log.d("noteapp", "or here?")
         val computedPath = computePath(element.rawPoints).strokePath
@@ -297,6 +308,7 @@ fun computePath(stroke: MutableList<PenPoint>): StrokeComp {
         val mid = (leftEdges[i-1] + leftEdges[i]) / 2f
         strokePath.quadraticTo(leftEdges[i-1].x, leftEdges[i-1].y, mid.x, mid.y)
     }
+    strokePath.lineTo(leftEdges.last().x, leftEdges.last().y)
 
 // Rounded tip at the end
     strokePath.lineTo(rightEdges.last().x, rightEdges.last().y)
@@ -336,6 +348,7 @@ fun selectLassoStrokes(): List<Int> {
 
                 if (pointsToTest.any { isPointInLasso(it, lassoPoints) }) {
                     selectedIndices.add(index)
+                    strokes[index].selected = true
                 }
             }
         }

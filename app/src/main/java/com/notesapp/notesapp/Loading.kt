@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -44,9 +45,8 @@ fun LoadSVGButton(
             strokes.addAll(parseSvgToElementsHelper(context, it))
         }
     }
-    // To trigger it (e.g., from a button):
     Box {
-        Button(
+        FilledTonalButton(
             onClick = {
                 filePickerLauncher.launch(arrayOf("text/plain", "image/svg+xml"))
             },
@@ -112,9 +112,9 @@ private fun parseStrokePath(d: String): Element.Stroke? {
     var startIndex = -1
     var endIndex = -1
     while (i < d.length) {
-        if (startIndex == -1 && endIndex == -1 && d[i] in "MLZml" ) {
+        if (startIndex == -1 && endIndex == -1 && d[i] in "MLZmlQq" ) {
             startIndex = i + 1
-        } else if (startIndex != -1 && endIndex == -1 && d[i] in "MLZmlz") {
+        } else if (startIndex != -1 && endIndex == -1 && d[i] in "MLZmlzQq") {
             endIndex = i - 1
         } else if (endIndex != -1 && startIndex != -1) {
             val sub = d.substring(startIndex + 1, endIndex)

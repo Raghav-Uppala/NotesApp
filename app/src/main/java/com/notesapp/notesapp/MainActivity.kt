@@ -1,75 +1,67 @@
 package com.notesapp.notesapp
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
-import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.unit.dp
-import androidx.core.graphics.toColorInt
+import android.net.Uri
+import android.content.Context
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.documentfile.provider.DocumentFile
+import androidx.core.net.toUri
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { Surface {
-            ZoomScreen()
-        } }
+        setContent {
+            AppTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    MainCompose()
+                }
+            }
+        }
     }
 }
-fun String.toComposeColor(): Color {
-    return Color(this.toColorInt())
-}
-
-fun Color.toHexCode(): String {
-    val argb = this.toArgb()
-    return String.format("#%06X", argb)
-}
-
-fun pressureToThickness(pressure: Float): Float {
-    return ((pressure)) * fontSize
+@Composable
+fun AppTheme(content: @Composable () -> Unit) {
+    MaterialTheme(
+        colorScheme = darkColorScheme(), // replace later
+        content = content
+    )
 }
 
 @Composable
-fun ZoomScreen() {
-    var reset by remember { mutableStateOf(0) }
+fun MainCompose(
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        val sharedPref = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        val savedUriString = sharedPref.getString("root_folder_uri", null)
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        DrawingScreen(
-            reset,
-            Modifier.fillMaxSize()
-        )
-        Button(
-            onClick = {
-                reset++
+        if (savedUriString != null) {
+            val savedUri = savedUriString.toUri()
+
+            // Verify we still have permission (user might have deleted the folder)
+            val hasPermission = context.contentResolver.persistedUriPermissions.any {
+                it.uri == savedUri
             }
-        ) {
-            Text("Reset Zoom")
-        }
-        SaveSVGButton(modifier = Modifier.offset(x = 150.dp, y = 0.dp))
-        LoadSVGButton(modifier = Modifier.offset(x = 300.dp, y = 0.dp))
-        Button(
-            onClick = {
-                lasso = lasso != true
-            },
-            modifier = Modifier
-                .offset( x = 450.dp, y = 0.dp)
-        ) {
-            Text("Lasso")
+
+            if (hasPermission) {
+                rootFolderUri = savedUri
+            }
         }
     }
+    RouteController(modifier = modifier)
 }
