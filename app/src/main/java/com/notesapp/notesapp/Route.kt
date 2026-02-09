@@ -12,7 +12,8 @@ import androidx.navigation.compose.rememberNavController
 
 enum class NotesAppRoutes() {
     Menu,
-    Canvas
+    Canvas,
+    Settings
 }
 
 @Composable
@@ -25,14 +26,15 @@ fun RouteController(modifier: Modifier = Modifier) {
         modifier = modifier
     ) {
         composable(route = NotesAppRoutes.Menu.name) {
-            MainMenu({
-                navController.navigate(NotesAppRoutes.Canvas.name)
-            })
+            MenuHost(navController)
         }
         composable(route = NotesAppRoutes.Canvas.name) {
             DrawingScreen({
                 navController.navigate(NotesAppRoutes.Menu.name)
             })
+        }
+        composable(route = NotesAppRoutes.Settings.name) {
+            SettingsHost(navController)
         }
     }
 }
