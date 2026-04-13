@@ -18,6 +18,11 @@ data class StrokeComp(
     var strokePath: Path,
 )
 
+data class Settings(
+    val stylusOnly: Boolean = true,
+    val showSave: Boolean = true,
+    val defaultZoom: Float = 1.0f,
+)
 sealed class Element {
     var selected = false
     data class Stroke(
